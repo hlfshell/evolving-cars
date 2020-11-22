@@ -3,7 +3,7 @@ import pygame
 class Track:
 
     def __init__(self, filename : str):
-        self._surface = pygame.image.load("track1.png")#.convert()
+        self._surface = pygame.image.load(filename)
         self._rect = self._surface.get_rect()
         self._rect.topleft= [0,0]
 

@@ -4,7 +4,7 @@ from PIL import Image
 import numpy as np
 from pygame.locals import K_LEFT, K_RIGHT, K_UP, K_DOWN
 
-im = Image.open('car_sprite.png')
+im = Image.open('assets/car_sprite.png')
 im = im.resize((28, 14))
 
 class Car(pygame.sprite.Sprite):

@@ -1,8 +1,8 @@
 import pygame
 from pygame.locals import *
-from car import Car
-from checkpoint import Checkpoint
-from track import Track
+from .car import Car
+from .checkpoint import Checkpoint
+from .track import Track
 import math
 from pygame.locals import K_d, K_RETURN
 
@@ -15,7 +15,6 @@ class Game:
 
         self._cars : [Car] = pygame.sprite.Group()
         self._checkpoints : [Checkpoint] = []
-        # self._track_group = pygame.sprite.Group()
         self._trackname = trackname
         self._car_spawn_position = None
         self._car_spawn_rotation = None
