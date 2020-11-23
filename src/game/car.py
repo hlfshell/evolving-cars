@@ -28,13 +28,12 @@ class Car(pygame.sprite.Sprite):
         red, green, blue = imagedata[:,:,0], imagedata[:,:,1], imagedata[:,:,2]
         mask = (red > 250) & (green > 250) & (blue > 250)
         imagedata[:,:,:3][mask] = [color[0], color[1], color[2]]
+
         self._image_shape = (imagedata.shape[0:2][1], imagedata.shape[0:2][0])
-        # imo = Image.fromarray(imagedata)
-        # imo.save('out.png')
         self._image_data = imagedata.astype('uint8')
+
         self.surf = pygame.image.frombuffer(self._image_data, self._image_shape, 'RGBA')
-        # self.surf = pygame.Surface(self._position)
-        # self.surf.fill(self._color)
+        self.image = self.surf
         self.rect = self.surf.get_rect(center = self._position)
     
         self._velocity = vector(0,0)
@@ -76,17 +75,14 @@ class Car(pygame.sprite.Sprite):
             velocity_magnitude = 10
 
         rotation = -self._rotation
-        # if velocity_magnitude < 0:
-        #     # rotation = self._rotation
-        #     velocity_magnitude = velocity_magnitude
 
         self._velocity = vector(velocity_magnitude, 0).rotate(rotation)
-
         self._position += self._velocity
 
     def render(self):
         surface = pygame.image.frombuffer(self._image_data, self._image_shape, 'RGBA')
         self.surf = pygame.transform.rotate(surface, self._rotation)
+        self.image = self.surf # This is obtuse but it's how mask collisions work
         self.rect = self.surf.get_rect(center = self._position)
 
     def crash(self, test):

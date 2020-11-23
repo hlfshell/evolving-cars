@@ -16,6 +16,7 @@ class Game:
         self._cars : [Car] = pygame.sprite.Group()
         self._checkpoints : [Checkpoint] = []
         self._trackname = trackname
+        self._tracksg = pygame.sprite.Group()
         self._car_spawn_position = None
         self._car_spawn_rotation = None
 
@@ -28,6 +29,7 @@ class Game:
     def on_init(self):
         pygame.init()
         self._track = Track(self._trackname)
+        self._tracksg.add(self._track)
         self._display_surface = pygame.display.set_mode(self._track.get_size())
         self._running = True
         pygame.display.set_caption("Car Game")
@@ -40,18 +42,24 @@ class Game:
         for car in self._cars:
             car.move()
             # Calculate if the car impacts
-            # trackCollions = pygame.sprite.spritecollide(car, self._track, False)
-            checkpointCollisions = pygame.sprite.spritecollide(car, self._checkpoints, False)
-            for collision in checkpointCollisions:
-                car.crash(collision)
+            trackCollions = pygame.sprite.spritecollide(car, self._tracksg, False, pygame.sprite.collide_mask)
+            if len(trackCollions) > 0:
+                print("TRIGGERED")
+            else:
+                print("NOT TRIGGERED")
+            for checkpoint in self._checkpoints:
+                if checkpoint.check_collision(car.rect, self._display_surface):
+                    car.cross_checkpoint(checkpoint)
 
 
     def on_render(self):
         self._display_surface.fill((255,255,255))
-        self._display_surface.blit(self._track._surface, self._track._rect)
+        self._display_surface.blit(self._track.surf, self._track.rect)
         for car in self._cars:
             car.render()
             self._display_surface.blit(car.surf, car.rect)
+        for checkpoint in self._checkpoints:
+            checkpoint.draw(self._display_surface)
         pygame.display.update()
         self._frame_per_sec.tick(self._fps)
 
@@ -113,7 +121,14 @@ class Game:
                     elif len(self._checkpoints) > 0:
                         self._checkpoints = self._checkpoints[:-1]
 
-    def on_execute(self):       
+    def setup(self):
+        self.set_car_spawn()
+        # Spawn a car
+        car = Car("one", self._car_spawn_position, self._car_spawn_rotation)
+        self.add_car(car)
+        self.set_checkpoints()
+
+    def on_execute(self):
         while(self._running):
             for event in pygame.event.get():
                 self.on_event(event)
@@ -121,16 +136,17 @@ class Game:
             self.on_render()
         self.on_cleanup()
 
-    def play(self):
+    def manual_play(self):
+        self.on_execute()
+
+    def init(self):
         if self.on_init() == False:
             self._running = False
 
-        self.set_car_spawn()
-        # Spawn a car
-        car = Car("one", self._car_spawn_position, self._car_spawn_rotation)
-        self.add_car(car)
-        self.set_checkpoints()
-        self.on_execute()
+
+    def play(self):
+        if self.on_init() == False:
+            self._running = False
 
 if __name__ == "__main__":
     game = Game("track1.png")

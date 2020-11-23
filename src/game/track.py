@@ -1,14 +1,17 @@
 import pygame
 
-class Track:
+class Track(pygame.sprite.Sprite):
 
     def __init__(self, filename : str):
-        self._surface = pygame.image.load(filename)
-        self._rect = self._surface.get_rect()
-        self._rect.topleft= [0,0]
+        super().__init__()
+
+        self.surf = pygame.image.load(filename)
+        self.rect = self.surf.get_rect()
+        self.rect.topleft= [0,0]
+        self.mask = pygame.mask.from_surface(self.surf)
 
     def get_size(self):
-        return self._surface.get_size()
+        return self.surf.get_size()
 
 
 
