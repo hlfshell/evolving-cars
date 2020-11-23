@@ -44,11 +44,7 @@ class Game:
             # Calculate if the car impacts
             trackCollions = pygame.sprite.spritecollide(car, self._tracksg, False, pygame.sprite.collide_mask)
             if len(trackCollions) > 0:
-                # print("TRIGGERED")
-                pass
-            else:
-                # print("NOT TRIGGERED")
-                pass
+                car.crash()
             for checkpoint in self._checkpoints:
                 if checkpoint.check_collision(car.rect):
                     car.cross_checkpoint(checkpoint)

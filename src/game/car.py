@@ -21,6 +21,8 @@ class Car(pygame.sprite.Sprite):
         ):
         super().__init__()
 
+        self._crashed = False
+
         self._id = id
         self._position = position
         self._rotation = rotation
@@ -48,6 +50,9 @@ class Car(pygame.sprite.Sprite):
         self._checkpoints = {}
 
     def move(self):
+        if self._crashed:
+            return
+            
         acceleration = 0
 
         pressed_keys = pygame.key.get_pressed()
@@ -91,8 +96,9 @@ class Car(pygame.sprite.Sprite):
         self.image = self.surf # This is obtuse but it's how mask collisions work
         self.rect = self.surf.get_rect(center = self._position)
 
-    def crash(self, test):
-        self._score += -100
+    def crash(self):
+        self._score += CRASH
+        self._crashed = True
 
     def pass_goal(self):
         print(locals())
