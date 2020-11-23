@@ -15,90 +15,79 @@ class Checkpoint(pygame.sprite.Sprite):
 
         self._line = Line(start_at, end_at)
 
+        self._rects : [pygame.Rect] = []
+
+        self.create_rects(start_at[0], start_at[1], end_at[0], end_at[1])
+
     def draw(self, surface):
         self._line.draw(surface, (255, 255, 0))
+    
+    # All create_rects are essentially copied from the
+    # Pseudocode from the wikipedia of Besenha's Algorithm
+    # found at https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
+    # The overall idea is that this can handle lines of any type
+    # (including vertical which broke my euclidean approach)
+    # to plot a line. Instead of plotting - I will just be creating
+    # one pixel rects to make use of pygame's rect collision.
 
-    def check_collision(self, rect,surf):
-        size = rect.size
-        topleft = rect.topleft
-        bottomright = (rect.topleft[0] + size[0], rect.topleft[1] +size[1])
-        
-        # Create a line for each of the 
-        lines = []
-        lines.append( Line( topleft, (topleft[0]+size[0], topleft[1]) ) ) #TOP
-        lines.append( Line( topleft, (topleft[0], topleft[1]+size[1]) ) ) #LEFT
-        lines.append( Line( (topleft[0]+size[0], topleft[1]), bottomright ) ) #RIGHT
-        lines.append( Line( (topleft[0], topleft[1]+size[1]), bottomright ) ) #BOTTOM
-        
-        for line in lines:
-            line.draw(surf, (255, 0, 0))
-            pygame.display.update()
-            if self._line.intersects(line):
-                return True
-
-class Line():
-
-    def __init__(self, start_at, end_at):
-        
-        self.start = start_at
-        self.end = end_at
-
-        rise = (end_at[1] - start_at[1])
-        run =  (end_at[0] - start_at[0])
-
-        if run == 0:
-            #uh-oh - vertical line. Just go with a very large slope
-            self.m = 10000
+    def create_rects(self, x0, y0, x1, y1):
+        if abs(y1-y0) < abs(x1-x0):
+            if x0 > x1:
+               self.create_rects_low(x1, y1, x0, y0)
+            else:
+                self.create_rects_low(x0, y0, x1, y1)
         else:
-            self.m = rise / run
-        self.b = - (self.m * start_at[0]) / start_at[1] # I should probably set this to 1 if we're at the 0th height
+            if y0 > y1:
+                self.create_rects_high(x1, y1, x0, y0)
+            else:
+                self.create_rects_high(x0, y0, x1, y1)
 
-    def draw(self, surface, color):
-        pygame.draw.line(surface, color, self.start, self.end, width=3)
-        pygame.display.update()
+    def create_rects_low(self, x0, y0, x1, y1):
+        dx = x1 - x0
+        dy = y1 - y0
+        yi = 1
+        if dy < 0:
+            yi = -1
+            dy = -dy
+        
+        D = (2 * dy) - dx
+        y = y0
 
-    def intersects(self, line):
-        # y = mx + b <~ match y's
-        # m_1x + b_1 = m_2x + b_2
-        # (m_1-m_2)x = b_2 - b_1
-        # x = (b_2 - b_1 )/ (m_1-m_2)
-        # y = m_1x + b_1 <- fill it in
-        num_x = (line.b - self.b)
-        denom_x = (self.m - line.m)
-        if denom_x == 0:
-            # Parallel lines! Can't intersect
-            return False
-        x = num_x / denom_x
-        y = self.m * x + self.b
+        for x in range(x0, x1):
+            rect = pygame.Rect(x, y, x, y)
+            self._rects.append(rect)
 
-        print("x,y", x, y, self.m, self.b)
+            if D > 0:
+                y = y + yi
+                D = D + (2 * (dy-dx))
+            else:
+                D = D + 2*dy
 
-        # Now determine if that point falls outside the start/end for itself
-        if x < self.start[0] and x < self.end[0]:
-            print("1")
-            return False
-        if x > self.start[0] and x > self.end[0]:
-            print("2")
-            return False
-        if y < self.start[1] and y < self.end[1]:
-            print("3")
-            return False
-        if y > self.start[1] and y > self.end[1]:
-            print("4")
-            return False
+    def create_rects_high(self, x0, y0, x1, y1):
+        dx = x1 - x0
+        dy = y1 - y0
+        xi = 1
 
-        # And the same checks, but for the other line
-        if x < line.start[0] and x < line.end[0]:
-            print("5")
-            return False
-        if x > line.start[0] and x > line.end[0]:
-            print("6")
-            return False
-        if y < line.start[1] and y < line.end[1]:
-            print("7")
-            return False
-        if y > line.start[1] and y > line.end[1]:
-            print("8")
-            return False
+        if dx < 0:
+            xi = -1
+            dx = -dx
+        
+        D = (2 * dx) - dy
+        x = x0
 
-        return True
+        for y in range(y0, y1):
+            # rect = pygame.Surface((x, y),size=1).get_rect(center=(x,y))
+            rect = pygame.Rect(x, y, x, y)
+            self._rects.append(rect)
+            
+            if D > 0:
+                x = x + xi
+                D = D + (2 * (dx - dy))
+            else:
+                D = D + 2*dx
+
+    def check_collision(self, target):
+        for rect in self._rects:
+            if rect.colliderect(target):
+                return True
+        return False
