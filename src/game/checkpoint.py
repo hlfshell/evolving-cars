@@ -1,6 +1,8 @@
 import pygame
 from math import floor
 
+CHECKPOINT_COLOR = (255, 255, 0)
+
 class Checkpoint(pygame.sprite.Sprite):
     def __init__(
         self, id : str,
@@ -13,14 +15,12 @@ class Checkpoint(pygame.sprite.Sprite):
         self._start_at = start_at
         self._end_at = end_at
 
-        self._line = Line(start_at, end_at)
-
         self._rects : [pygame.Rect] = []
 
         self.create_rects(start_at[0], start_at[1], end_at[0], end_at[1])
 
     def draw(self, surface):
-        self._line.draw(surface, (255, 255, 0))
+         pygame.draw.line(surface, CHECKPOINT_COLOR, self._start_at, self._end_at, width=3)
     
     # All create_rects are essentially copied from the
     # Pseudocode from the wikipedia of Besenha's Algorithm

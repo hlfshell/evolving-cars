@@ -51,7 +51,6 @@ class Game:
                 pass
             for checkpoint in self._checkpoints:
                 if checkpoint.check_collision(car.rect):
-                    print("TRIGGERED")
                     car.cross_checkpoint(checkpoint)
 
     def on_render(self):

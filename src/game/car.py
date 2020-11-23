@@ -3,9 +3,13 @@ vector = pygame.math.Vector2
 from PIL import Image
 import numpy as np
 from pygame.locals import K_LEFT, K_RIGHT, K_UP, K_DOWN
+from .checkpoint import Checkpoint
 
 im = Image.open('assets/car_sprite.png')
 im = im.resize((28, 14))
+
+CRASH = -200
+CHECKPOINT = 100
 
 class Car(pygame.sprite.Sprite):
 
@@ -40,6 +44,8 @@ class Car(pygame.sprite.Sprite):
         self._acceleration = vector(0,0)
 
         self._score = 0
+
+        self._checkpoints = {}
 
     def move(self):
         acceleration = 0
@@ -90,3 +96,8 @@ class Car(pygame.sprite.Sprite):
 
     def pass_goal(self):
         print(locals())
+
+    def cross_checkpoint(self, checkpoint : Checkpoint):
+        if checkpoint._id not in self._checkpoints:
+            self._score += CHECKPOINT
+            self._checkpoints[checkpoint._id] = True
