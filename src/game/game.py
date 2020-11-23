@@ -53,7 +53,7 @@ class Game:
 
 
     def on_render(self):
-        self._display_surface.fill((255,255,255))
+        self._display_surface.fill((69, 68, 67))
         self._display_surface.blit(self._track.surf, self._track.rect)
         for car in self._cars:
             car.render()
