@@ -23,7 +23,7 @@ class Checkpoint(pygame.sprite.Sprite):
          pygame.draw.line(surface, CHECKPOINT_COLOR, self._start_at, self._end_at, width=3)
     
     # All create_rects are essentially copied from the
-    # Pseudocode from the wikipedia of Besenha's Algorithm
+    # Pseudocode from the wikipedia of Bresenham's Algorithm
     # found at https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
     # The overall idea is that this can handle lines of any type
     # (including vertical which broke my euclidean approach)
