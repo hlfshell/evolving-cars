@@ -20,6 +20,8 @@ class Game:
         self._car_spawn_position = None
         self._car_spawn_rotation = None
 
+        self._show_checkpoints = False
+
     def add_car(self, car : Car):
         self._cars.add(car)
 
@@ -55,8 +57,9 @@ class Game:
         for car in self._cars:
             car.render()
             self._display_surface.blit(car.surf, car.rect)
-        for checkpoint in self._checkpoints:
-            checkpoint.draw(self._display_surface)
+        if self._show_checkpoints:
+            for checkpoint in self._checkpoints:
+                checkpoint.draw(self._display_surface)
         pygame.display.update()
         self._frame_per_sec.tick(self._fps)
 
@@ -144,12 +147,3 @@ class Game:
     def play(self):
         if self.on_init() == False:
             self._running = False
-
-if __name__ == "__main__":
-    game = Game("track1.png")
-    # car = Car("one", (20, 30))
-    # checkpoint = Checkpoint("abc123", (20, 20), (30, 30))
-    # game.add_car(car)
-    # game.add_checkpoint(checkpoint)
-    game.play()
-    # game.on_execute()
