@@ -10,12 +10,16 @@
 def define_line(x0, y0, x1, y1):
     if abs(y1-y0) < abs(x1-x0):
         if x0 > x1:
-            return define_line_low(x1, y1, x0, y0)
+            line = define_line_low(x1, y1, x0, y0)
+            line.reverse()
+            return line
         else:
             return define_line_low(x0, y0, x1, y1)
     else:
         if y0 > y1:
-            return define_line_high(x1, y1, x0, y0)
+            line = define_line_high(x1, y1, x0, y0)
+            line.reverse()
+            return line
         else:
             return define_line_high(x0, y0, x1, y1)
 

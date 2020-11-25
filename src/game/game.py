@@ -50,6 +50,9 @@ class Game:
             for checkpoint in self._checkpoints:
                 if checkpoint.check_collision(car.rect):
                     car.cross_checkpoint(checkpoint)
+            for angle in [-60, -30, 0, 30, 60]:
+                endpoint, distance = self._track.distance_to_wall(car, angle)
+                car.add_distance(angle, endpoint, distance)
 
     def on_render(self):
         self._display_surface.fill((69, 68, 67))
@@ -57,11 +60,19 @@ class Game:
         for car in self._cars:
             car.render()
             self._display_surface.blit(car.surf, car.rect)
+            
         if self._show_checkpoints:
             for checkpoint in self._checkpoints:
                 checkpoint.draw(self._display_surface)
         pygame.display.update()
         self._frame_per_sec.tick(self._fps)
+
+        # Draw each distance measuring line
+        for car in self._cars:
+            for angle in car._distance_endpoints:
+                pygame.draw.line(self._display_surface, (0, 255, 0), car.get_center(), car._distance_endpoints[angle], width=1)
+
+        pygame.display.update()
 
     def on_cleanup(self):
         pass
@@ -82,6 +93,7 @@ class Game:
                         # Figure out our rotation angle from the new point
                         point = pygame.mouse.get_pos()
                         radians = math.atan2(point[0]-self._car_spawn_position[0], point[1]-self._car_spawn_position[1])
+
                         self._car_spawn_rotation = math.degrees(radians) - 90
 
     def set_checkpoints(self):

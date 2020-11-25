@@ -1,6 +1,6 @@
 import pygame
 from .car import Car
-from math import tanh, radians, floor
+from math import radians, floor, tan, sqrt
 from .bresenham import define_line
 
 class Track(pygame.sprite.Sprite):
@@ -25,87 +25,97 @@ class Track(pygame.sprite.Sprite):
     # and then find the first pixel that contains a
     # non-zero alpha as a collision. From here we can
     # return the resulting point and the calculated
-    # distance
+    # distance.
+    # To find the point where the line from the car at
+    # said angle encounters the wall, we use trig and the
+    # size of the image to calculate it. See doc/trig.jpg
+    # for the breakdown.
     def distance_to_wall(self, car : Car, angle):
         # The angle is relative to the car's orientation, but we
         # need the angle for our caluclations relative to the
         # origin. Therefore we are going to convert its
         # coordinate frame
-        angle = angle + car.get_rotation()
-        print("ANGLE", angle)
+        # Why + 90? Because we were -90 on rotation at creation
+        # time due to image not facing at 0 degrees
+        angle = (angle + car.get_rotation() + 90) % 360
 
         # Validation / safety - negative angles
-        # are just 360 minus that angle. We treat
-        # all angles as clockwise, with 0 being straight
-        # up, 90 being right, 180 being down, 270 being left
+        # are just 360 minus that angle. We treat all angles
+        # as COUNTERclockwise, with 0 degrees being straight
+        # down, 180 up, 90 right, and 270 left. The counter
+        # clockwise bit threw me for a loop for awhile.
         if angle < 0:
             angle = 360 - angle
         start = car.get_center()
+        start = (int(start[0]), int(start[1]))
         shape = self.get_size()
+        shape = (shape[0] - 1, shape[1] - 1)
         pixels = None
 
         # First, to make life easy, determine if the line is
         # horizontal or vertical to skip the mathematical
         # oddities and checks.
         # Horizontal
-        if angle == 90 or angle == 270:
-            print("hori")
+        if angle == 90:
             pixels = define_line(start[0], start[1], shape[0], start[1])
+        elif angle == 270:
+            pixels = define_line(start[0], start[1], 0, start[1])
 
         # Vertical
-        elif angle == 0 or angle == 180:
-            print("vert")
+        elif angle == 0:
             pixels = define_line(start[0], start[1], start[0], shape[1])
+        elif angle == 180:
+            pixels = define_line(start[0], start[1], start[0], 0)
 
-        else: 
-            print("other")
+        else:
             # Is our angled line going up or down? Left or right? Our math
             # to find our "end point" changes based on this.
-            
+            # Again, reference doc/trig.jpg to see where I am pulling
+            # the equations from.
+
+            # If the first calculation results in an intersection outside
+            # of the image boundaries, then logically we would have
+            # intersected the other wall by then - so we'll switch to that
+            # calculation.
+
             # Quadrant 1
-            if angle < 90:
-                y_start = 0
-                x_start = shape[0] - 1
+            if angle <= 90:
+                x = start[0] + floor(tan(radians(angle))*(shape[1]-start[1]))
+                y = shape[1]
+                if x > shape[0]:
+                    x = shape[0]
+                    y = start[1] + floor(tan(radians(90-angle))*(shape[0]-start[0]))
             # Quadrant 2
-            elif angle > 90 and angle < 180:
-                y_start = shape[1] - 1
-                x_start = shape[0] - 1
+            elif angle > 90 and angle <= 180:
+                x = shape[0]
+                y = start[1] - floor(tan(radians(angle-90))*(shape[0]-start[0]))
+                if y < 0:
+                    x = start[0] + floor(tan(radians(180 - angle))*start[1])
+                    y = 0
             # Quadrant 3
-            elif angle > 180 and angle < 270:
-                y_start = shape[1] - 1
-                x_start = shape[0] - 1
+            elif angle > 180 and angle <= 270:
+                x = start[0] - floor(tan(radians(angle - 180))*start[1])
+                y = 0
+                if x < 0:
+                    x = 0
+                    y = start[1] - floor(tan(radians(270-angle))*start[0])
             # Quadrant 4
             elif angle > 270:
-                y_start = 0
-                x_start = 0
+                x = 0
+                y = start[1] + floor(tan(radians(angle - 270))*start[0])
+                if y > shape[1]:
+                    x = start[0] - floor(tan(radians(360-angle))*(shape[1]-start[1]))
+                    y = shape[1]
 
-            # Calculate the first "end point". 
-            # First, we assume the angle will hit the top canvas (0) before it will hit the
-            # side of the canvas
-            # y = mx + b
-            # m = slope = tanh(angle)
-            # b = y - mx (use the start positions!)
-            # Once you have B...
-            # Set y = 0, solve for x to find intercept point
-            # x = (y - b) / m
-            m = tanh(radians(angle))
-            b = start[1] - (m * start[0])
-            x = floor((y_start - b) / m)
+            end = (int(x), int(y))
 
-            # If x is not greater than the shape, we have our intercept point.
-            if x > 0 and x < shape[0]:
-                print("within")
-                end = (x, 0)
-                
-            # Otherwise, we need to solve for x with our x_start
-            else:
-                print("without")
-                end = (x_start, floor((m * x_start) + b))
+            pixels = define_line(start[0], start[1], end[0], end[1])
 
-            print(start, end)
+        for pixel in pixels:
+            if tuple(self.surf.get_at(pixel))[-1] != 0:
+                end = pixel
+                break
 
-# b = pygame.sprite.Sprite() # create sprite
-# b.image = pygame.image.load("ball.png").convert() # load ball image
-# b.rect = b.image.get_rect() # use image extent values
-# b.rect.topleft = [0, 0] # put the ball in the top left corner
-# screen.blit(b.image, b.rect)
+        # Calculate the total euclidean distance to the set end
+        distance = sqrt( (end[0]-start[0])**2 + (end[1]-start[1])**2 )
+        return end, distance

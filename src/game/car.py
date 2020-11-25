@@ -49,6 +49,15 @@ class Car(pygame.sprite.Sprite):
 
         self._checkpoints = {}
 
+        self._distances = {}
+        self._distance_endpoints = {}
+
+    def get_center(self):
+        return self._position
+
+    def get_rotation(self):
+        return self._rotation
+
     def move(self):
         if self._crashed:
             return
@@ -86,6 +95,7 @@ class Car(pygame.sprite.Sprite):
             velocity_magnitude = 10
 
         rotation = -self._rotation
+        # rotation = self._rotation
 
         self._velocity = vector(velocity_magnitude, 0).rotate(rotation)
         self._position += self._velocity
@@ -100,10 +110,11 @@ class Car(pygame.sprite.Sprite):
         self._score += CRASH
         self._crashed = True
 
-    def pass_goal(self):
-        print(locals())
-
     def cross_checkpoint(self, checkpoint : Checkpoint):
         if checkpoint._id not in self._checkpoints:
             self._score += CHECKPOINT
             self._checkpoints[checkpoint._id] = True
+
+    def add_distance(self, angle, end_point, distance):
+        self._distance_endpoints[angle] = end_point
+        self._distances[angle] = distance
