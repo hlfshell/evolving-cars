@@ -3,7 +3,9 @@ vector = pygame.math.Vector2
 from PIL import Image
 import numpy as np
 from pygame.locals import K_LEFT, K_RIGHT, K_UP, K_DOWN
+
 from .checkpoint import Checkpoint
+from .nn import NN
 
 im = Image.open('assets/car_sprite.png')
 im = im.resize((28, 14))
@@ -52,39 +54,72 @@ class Car(pygame.sprite.Sprite):
         self._distances = {}
         self._distance_endpoints = {}
 
+        self._nn = NN()
+
     def get_center(self):
         return self._position
 
     def get_rotation(self):
         return self._rotation
 
-    def move(self):
-        if self._crashed:
-            return
-            
-        acceleration = 0
-
-        pressed_keys = pygame.key.get_pressed()
+    def get_keyboard_move(self, pressed_keys):
+        rotation = 0
 
         if pressed_keys[K_LEFT]:
-            self._rotation += 1
+            rotation += 1
         elif pressed_keys[K_RIGHT]:
-            self._rotation += -1
-        self._rotation = self._rotation % 360
+            rotation += -1
+
+        acceleration = 0
 
         if pressed_keys[K_UP]:
             acceleration = 0.5
         elif pressed_keys[K_DOWN]:
             acceleration = -0.5
-        else:
+
+        return acceleration, rotation
+
+    def get_nn_move(self):
+        orders = self._nn.infer(self._velocity.magnitude(), self._rotation, self._distances)
+        orders = orders >= 0.5
+        # orders is the NN output with the following outputs
+        # 1. acceleration
+        # 2. deacceleration
+        # 3+4. turn left (soft and hard)
+        # 5+6. turn right (soft and hard)
+        accelerate = orders[0]
+        deaccelerate = orders[1]
+        leftSlight = orders[2]
+        leftHard = orders[3]
+        rightSlight = orders[4]
+        rightHard = orders[5]
+
+        acceleration = 0
+        if accelerate:
+            acceleration += 0.5
+        if deaccelerate:
+            acceleration += -0.5
+
+        rotation = 0
+        if leftSlight:
+            rotation += 1
+        if leftHard:
+            rotation += 4
+        if rightSlight:
+            rotation -= 1
+        if rightHard:
+            rotation -= 4
+
+        return acceleration, rotation
+
+    def move(self, acceleration, rotation):
+        if self._crashed:
+            return
+        self._rotation += rotation
+    
+        if acceleration == 0:
             current_magnitude = self._velocity.magnitude()
             deaccelerate = 0.05
-            # if current_magnitude < 0:
-            #     if current_magnitude + deaccelerate > 0:
-            #         acceleration = -current_magnitude
-            #     else:
-            #         acceleration = deaccelerate
-            # else:
             if current_magnitude - deaccelerate < 0:
                 acceleration = -current_magnitude
             else:
@@ -95,7 +130,6 @@ class Car(pygame.sprite.Sprite):
             velocity_magnitude = 10
 
         rotation = -self._rotation
-        # rotation = self._rotation
 
         self._velocity = vector(velocity_magnitude, 0).rotate(rotation)
         self._position += self._velocity

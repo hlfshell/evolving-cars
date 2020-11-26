@@ -6,8 +6,11 @@ from .track import Track
 import math
 from pygame.locals import K_d, K_RETURN
 
+MANUAL_MODE = "manual"
+EVOLVE_MODE = "evolve"
+
 class Game:
-    def __init__(self, trackname : str):
+    def __init__(self, trackname : str, mode : str = MANUAL_MODE):
         self._running = True
         self._display_surface = None
         self._frame_per_sec = pygame.time.Clock()
@@ -21,6 +24,8 @@ class Game:
         self._car_spawn_rotation = None
 
         self._show_checkpoints = False
+
+        self._mode = mode
 
     def add_car(self, car : Car):
         self._cars.add(car)
@@ -42,7 +47,15 @@ class Game:
 
     def on_loop(self):
         for car in self._cars:
-            car.move()
+            for angle in [-60, -30, 0, 30, 60]:
+                endpoint, distance = self._track.distance_to_wall(car, angle)
+                car.add_distance(angle, endpoint, distance)
+            if self._mode == MANUAL_MODE:
+                pressed_keys = pygame.key.get_pressed()
+                acceleration, rotation = car.get_keyboard_move(pressed_keys)
+            else:
+                acceleration, rotation = car.get_nn_move()
+            car.move(acceleration, rotation)
             # Calculate if the car impacts
             trackCollions = pygame.sprite.spritecollide(car, self._tracksg, False, pygame.sprite.collide_mask)
             if len(trackCollions) > 0:
@@ -50,9 +63,6 @@ class Game:
             for checkpoint in self._checkpoints:
                 if checkpoint.check_collision(car.rect):
                     car.cross_checkpoint(checkpoint)
-            for angle in [-60, -30, 0, 30, 60]:
-                endpoint, distance = self._track.distance_to_wall(car, angle)
-                car.add_distance(angle, endpoint, distance)
 
     def on_render(self):
         self._display_surface.fill((69, 68, 67))
