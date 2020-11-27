@@ -62,7 +62,7 @@ class Game:
     def on_loop(self):
         for car in self._cars:
             if car._crashed:
-                return
+                continue
             for angle in [-60, -30, 0, 30, 60]:
                 endpoint, distance = self._track.distance_to_wall(car, angle)
                 car.add_distance(angle, endpoint, distance)
