@@ -2,35 +2,41 @@ import pygame
 vector = pygame.math.Vector2
 from PIL import Image
 import numpy as np
+from random import uniform, randint
 from pygame.locals import K_LEFT, K_RIGHT, K_UP, K_DOWN
+from uuid import uuid4 as uuid
 
 from .checkpoint import Checkpoint
 from .nn import NN
+from .nn import mate as nn_mate
 
 im = Image.open('assets/car_sprite.png')
 im = im.resize((28, 14))
 
 CRASH = -200
-CHECKPOINT = 100
+CHECKPOINT = 150
 
 class Car(pygame.sprite.Sprite):
 
     def __init__(
-        self, id : str,
+        self,
         position : (int, int),
         rotation : int = 0,
-        color : (int, int, int) = None
+        color : (int, int, int) = None,
+        nn = None
         ):
         super().__init__()
 
         self._crashed = False
 
-        self._id = id
         self._position = position
         self._rotation = rotation
+        self._initial_position = position
+        self._initial_rotation = rotation
 
         if color is None:
             color =  list(np.random.choice(range(256), size=3))
+        self._color = color
         # replace that car color of "white" with the chosen color
         imagedata = np.array(im)
         red, green, blue = imagedata[:,:,0], imagedata[:,:,1], imagedata[:,:,2]
@@ -54,7 +60,10 @@ class Car(pygame.sprite.Sprite):
         self._distances = {}
         self._distance_endpoints = {}
 
-        self._nn = NN()
+        if nn is None:
+            self._nn = NN()
+        else:
+            self._nn = nn
 
     def get_center(self):
         return self._position
@@ -140,15 +149,51 @@ class Car(pygame.sprite.Sprite):
         self.image = self.surf # This is obtuse but it's how mask collisions work
         self.rect = self.surf.get_rect(center = self._position)
 
-    def crash(self):
-        self._score += CRASH
+    def crash(self, seconds_since_start : int):
+        if self._crashed:
+            return
+        self._score += CRASH + int(seconds_since_start)
         self._crashed = True
 
-    def cross_checkpoint(self, checkpoint : Checkpoint):
+    def cross_checkpoint(self, checkpoint : Checkpoint, seconds_since_start : int):
         if checkpoint._id not in self._checkpoints:
-            self._score += CHECKPOINT
+            self._score += CHECKPOINT - int(seconds_since_start)
             self._checkpoints[checkpoint._id] = True
+
+    def add_end_score(self, seconds_since_start):
+        # Only add the score if we didn't crash
+        # if self._crashed:
+        #     return
+        # self._score += seconds_since_start
+        return # add nothing atm
 
     def add_distance(self, angle, end_point, distance):
         self._distance_endpoints[angle] = end_point
         self._distances[angle] = distance
+
+    def reset(self):
+        self._crashed = False
+        self._position = self._initial_position
+        self._rotation = self._initial_rotation
+        self._velocity = vector(0,0)
+        self._acceleration = vector(0,0)
+        self._score = 0
+        self._checkpoints = {}
+        self._distances = {}
+        self._distance_endpoints = {}
+
+def mate(a : Car, b : Car, a_parentage : float = 0.50, mutation : float = 0.05):
+    # For fun, blend the colors
+    color = [0, 0, 0]
+    for index, channel in enumerate(color):
+        if uniform(0, 1) < mutation:
+            color[index] = randint(0, 255)
+        elif uniform(0, 1) < a_parentage:
+            color[index] = a._color[index]
+        else:
+            color[index] = b._color[index]
+    color = (color[0], color[1], color[2])
+
+    nn = nn_mate(a._nn, b._nn, a_parentage=a_parentage, mutation=mutation)
+
+    return Car(a._initial_position, a._initial_rotation, color, nn)

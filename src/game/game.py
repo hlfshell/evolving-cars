@@ -1,13 +1,18 @@
 import pygame
 from pygame.locals import *
 from .car import Car
+from .car import mate as car_mate
 from .checkpoint import Checkpoint
 from .track import Track
 import math
 from pygame.locals import K_d, K_RETURN
+import time
 
 MANUAL_MODE = "manual"
 EVOLVE_MODE = "evolve"
+
+SUCCESSFUL_CUTOFF = 4
+TIME_LIMIT = 30
 
 class Game:
     def __init__(self, trackname : str, mode : str = MANUAL_MODE):
@@ -16,7 +21,7 @@ class Game:
         self._frame_per_sec = pygame.time.Clock()
         self._fps = 60
 
-        self._cars : [Car] = pygame.sprite.Group()
+        self._cars = pygame.sprite.Group()
         self._checkpoints : [Checkpoint] = []
         self._trackname = trackname
         self._tracksg = pygame.sprite.Group()
@@ -24,8 +29,17 @@ class Game:
         self._car_spawn_rotation = None
 
         self._show_checkpoints = False
+        self._show_distances = False
 
         self._mode = mode
+        self._generation = 1
+        self._cars_per_generation = 50
+        self._start_time = None
+
+    def get_time_since_start(self):
+        if self._start_time is None:
+            return None
+        return time.time() - self._start_time
 
     def add_car(self, car : Car):
         self._cars.add(car)
@@ -47,6 +61,8 @@ class Game:
 
     def on_loop(self):
         for car in self._cars:
+            if car._crashed:
+                return
             for angle in [-60, -30, 0, 30, 60]:
                 endpoint, distance = self._track.distance_to_wall(car, angle)
                 car.add_distance(angle, endpoint, distance)
@@ -59,10 +75,10 @@ class Game:
             # Calculate if the car impacts
             trackCollions = pygame.sprite.spritecollide(car, self._tracksg, False, pygame.sprite.collide_mask)
             if len(trackCollions) > 0:
-                car.crash()
+                car.crash(self.get_time_since_start())
             for checkpoint in self._checkpoints:
                 if checkpoint.check_collision(car.rect):
-                    car.cross_checkpoint(checkpoint)
+                    car.cross_checkpoint(checkpoint, self.get_time_since_start())
 
     def on_render(self):
         self._display_surface.fill((69, 68, 67))
@@ -78,14 +94,15 @@ class Game:
         self._frame_per_sec.tick(self._fps)
 
         # Draw each distance measuring line
-        for car in self._cars:
-            for angle in car._distance_endpoints:
-                pygame.draw.line(self._display_surface, (0, 255, 0), car.get_center(), car._distance_endpoints[angle], width=1)
+        if self._show_distances:
+            for car in self._cars:
+                for angle in car._distance_endpoints:
+                    pygame.draw.line(self._display_surface, (0, 255, 0), car.get_center(), car._distance_endpoints[angle], width=1)
 
         pygame.display.update()
 
     def on_cleanup(self):
-        pass
+        self._start_time = None
 
     def set_car_spawn(self):
         while(self._car_spawn_rotation is None):
@@ -110,6 +127,7 @@ class Game:
         pressed_keys = pygame.key.get_pressed()
         checkpoint_start = None
         checkpoint_id = 0
+        self._show_checkpoints = True
 
         while(not pressed_keys[K_RETURN]):
             pressed_keys = pygame.key.get_pressed()
@@ -142,29 +160,78 @@ class Game:
                     # Otherwise - remove the last drawn checkpoint
                     elif len(self._checkpoints) > 0:
                         self._checkpoints = self._checkpoints[:-1]
+        
+        self._show_checkpoints = False
 
     def setup(self):
         self.set_car_spawn()
         # Spawn a car
-        car = Car("one", self._car_spawn_position, self._car_spawn_rotation)
+        car = Car(self._car_spawn_position, self._car_spawn_rotation)
         self.add_car(car)
         self.set_checkpoints()
+        if self._mode == MANUAL_MODE:
+            # We're actually done by this point in manual mode. So just return
+            return
+        elif self._mode == EVOLVE_MODE:
+            self._show_distances = False
+            # Now that we've set the checkpoints, kill the one car we hvae
+            del car
 
     def on_execute(self):
-        while(self._running):
+        self._start_time = time.time()
+        while(self._running and self.get_time_since_start() < TIME_LIMIT):
             for event in pygame.event.get():
                 self.on_event(event)
             self.on_loop()
             self.on_render()
+        for car in self._cars:
+            car.add_end_score(self.get_time_since_start())
         self.on_cleanup()
 
     def manual_play(self):
+        self._mode = MANUAL_MODE
         self.on_execute()
+
+    def evolve(self):
+        self._mode = EVOLVE_MODE
+        while(self._running):
+            print(f"===== GENERATION {self._generation} =====")
+            for i in range(0, self._cars_per_generation):
+                self.add_car(Car(self._car_spawn_position, self._car_spawn_rotation))
+            self.on_execute()
+
+            # Now that execute is over, let's order the cars by their scores.
+            cars = sorted(self._cars, key=lambda car : car._score, reverse=True)
+
+            next_generation = cars[0:SUCCESSFUL_CUTOFF]
+
+            # Reset each car we seed the next_generation with
+            for car in next_generation:
+                print("SCORE", car._score)
+                car.reset()
+
+            while len(next_generation) < self._cars_per_generation:
+                for index, car in enumerate(cars[0:SUCCESSFUL_CUTOFF]):
+                    if len(next_generation) >= self._cars_per_generation:
+                        break
+                    for child_index, child in enumerate(cars[0:SUCCESSFUL_CUTOFF]):
+                        # Prevent a self-mate
+                        if child_index == index:
+                            continue
+                        new_car = car_mate(car, child)
+                        next_generation.append(new_car)
+
+            # In case we generated too many...
+            next_generation = next_generation[0:self._cars_per_generation]
+            self.on_cleanup()
+            self._cars = pygame.sprite.Group()
+            for car in next_generation:
+                self.add_car(car)
+            self._generation += 1
 
     def init(self):
         if self.on_init() == False:
             self._running = False
-
 
     def play(self):
         if self.on_init() == False:
