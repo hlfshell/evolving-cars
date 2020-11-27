@@ -12,10 +12,10 @@ MANUAL_MODE = "manual"
 EVOLVE_MODE = "evolve"
 
 SUCCESSFUL_CUTOFF = 4
-TIME_LIMIT = 30
+TIME_LIMIT = 20
 
 class Game:
-    def __init__(self, trackname : str, mode : str = MANUAL_MODE):
+    def __init__(self, trackname : str, mode : str = MANUAL_MODE, cars_per_generation=25):
         self._running = True
         self._display_surface = None
         self._frame_per_sec = pygame.time.Clock()
@@ -33,7 +33,7 @@ class Game:
 
         self._mode = mode
         self._generation = 1
-        self._cars_per_generation = 50
+        self._cars_per_generation = cars_per_generation
         self._start_time = None
 
     def get_time_since_start(self):
@@ -176,10 +176,18 @@ class Game:
             self._show_distances = False
             # Now that we've set the checkpoints, kill the one car we hvae
             del car
+            self._cars = pygame.sprite.Group()
+
+    def cars_alive(self):
+        count = 0
+        for car in self._cars:
+            if not car._crashed:
+                count += 1
+        return count
 
     def on_execute(self):
         self._start_time = time.time()
-        while(self._running and self.get_time_since_start() < TIME_LIMIT):
+        while(self._running and self.get_time_since_start() < TIME_LIMIT and self.cars_alive() > 0):
             for event in pygame.event.get():
                 self.on_event(event)
             self.on_loop()
@@ -194,10 +202,12 @@ class Game:
 
     def evolve(self):
         self._mode = EVOLVE_MODE
+        # init our first generation
+        for i in range(0, self._cars_per_generation):
+            self.add_car(Car(self._car_spawn_position, self._car_spawn_rotation))
+
         while(self._running):
-            print(f"===== GENERATION {self._generation} =====")
-            for i in range(0, self._cars_per_generation):
-                self.add_car(Car(self._car_spawn_position, self._car_spawn_rotation))
+            print(f"===== GENERATION {self._generation+1} =====")
             self.on_execute()
 
             # Now that execute is over, let's order the cars by their scores.
