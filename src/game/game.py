@@ -35,7 +35,6 @@ class Game:
         self._mode = mode
         self._generation = 1
         self._cars_per_generation = cars_per_generation
-        self._new_cars_per_generation = 5
         self._start_time = None
 
     def get_time_since_start(self):
@@ -217,7 +216,8 @@ class Game:
 
             # Now that execute is over, let's order the cars by their scores.
             cars = sorted(self._cars, key=lambda car : car._score, reverse=True)
-            self._cars = list(filter(lambda car: car in cars[0:SUCCESSFUL_CUTOFF], self._cars))
+            # self._cars = list(filter(lambda car: car in cars[0:SUCCESSFUL_CUTOFF], self._cars))
+            self._cars = cars[0:SUCCESSFUL_CUTOFF]
             self.on_render()
             time.sleep(3)
 
@@ -236,7 +236,7 @@ class Game:
                 next_generation.append(new_car)
 
             # Reset each parent that made it to the next generation
-            for car in next_generation[0:SUCCESSFUL_CUTOFF]:
+            for car in next_generation:
                 car.reset()
 
             # Add some new genes to the gene pool by adding a few completely newbie cars

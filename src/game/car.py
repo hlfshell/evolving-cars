@@ -155,7 +155,7 @@ class Car(pygame.sprite.Sprite):
     def crash(self, seconds_since_start : int):
         if self._crashed:
             return
-        # self._score += CRASH + int(seconds_since_start)
+        self._score += CRASH + int(seconds_since_start)
         self._crashed = True
 
     def cross_checkpoint(self, checkpoint : Checkpoint, seconds_since_start : int):
@@ -165,7 +165,7 @@ class Car(pygame.sprite.Sprite):
 
     def add_end_score(self, seconds_since_start):
         if len(self._checkpoints) == 0:
-            self._score -= NO_CHECKPOINTS
+            self._score += NO_CHECKPOINTS
         # Only add the score if we didn't crash
         # if self._crashed:
         #     return
