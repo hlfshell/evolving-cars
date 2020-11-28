@@ -186,6 +186,7 @@ class Car(pygame.sprite.Sprite):
         self._checkpoints = {}
         self._distances = {}
         self._distance_endpoints = {}
+        self.render()
 
 def mate(a : Car, b : Car, a_parentage : float = 0.50, mutation : float = 0.15):
     # For fun, blend the colors

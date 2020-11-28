@@ -5,7 +5,7 @@ from .car import mate as car_mate
 from .checkpoint import Checkpoint
 from .track import Track
 import math
-from pygame.locals import K_d, K_RETURN, K_c
+from pygame.locals import K_d, K_RETURN, K_c, K_n
 import time
 from random import uniform, choices
 
@@ -186,12 +186,15 @@ class Game:
 
     def on_execute(self):
         self._start_time = time.time()
-        while(self._running and self.get_time_since_start() < TIME_LIMIT and self.cars_alive() > 0):
+        manual_stop = False
+        while(self._running and self.get_time_since_start() < TIME_LIMIT and self.cars_alive() > 0 and not manual_stop):
             pressed_keys = pygame.key.get_pressed()
             if pressed_keys[K_c]:
                 self._show_checkpoints = not self._show_checkpoints
             if pressed_keys[K_d]:
                 self._show_distances = not self._show_distances
+            if pressed_keys[K_n]:
+                manual_stop = True
             for event in pygame.event.get():
                 self.on_event(event)
             self.on_loop()
@@ -216,7 +219,6 @@ class Game:
 
             # Now that execute is over, let's order the cars by their scores.
             cars = sorted(self._cars, key=lambda car : car._score, reverse=True)
-            # self._cars = list(filter(lambda car: car in cars[0:SUCCESSFUL_CUTOFF], self._cars))
             self._cars = cars[0:SUCCESSFUL_CUTOFF]
             self.on_render()
             time.sleep(3)
