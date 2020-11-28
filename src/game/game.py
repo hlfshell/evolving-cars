@@ -5,7 +5,7 @@ from .car import mate as car_mate
 from .checkpoint import Checkpoint
 from .track import Track
 import math
-from pygame.locals import K_d, K_RETURN
+from pygame.locals import K_d, K_RETURN, K_c
 import time
 from random import uniform, choices
 
@@ -35,6 +35,7 @@ class Game:
         self._mode = mode
         self._generation = 1
         self._cars_per_generation = cars_per_generation
+        self._new_cars_per_generation = 5
         self._start_time = None
 
     def get_time_since_start(self):
@@ -127,7 +128,6 @@ class Game:
     def set_checkpoints(self):
         pressed_keys = pygame.key.get_pressed()
         checkpoint_start = None
-        checkpoint_id = 0
         self._show_checkpoints = True
 
         while(not pressed_keys[K_RETURN]):
@@ -147,10 +147,9 @@ class Game:
                     if checkpoint_start is None:
                         checkpoint_start = pygame.mouse.get_pos()
                     else:
-                        checkpoint = Checkpoint(str(checkpoint_id), checkpoint_start, pygame.mouse.get_pos())
+                        checkpoint = Checkpoint(checkpoint_start, pygame.mouse.get_pos())
                         self._checkpoints.append(checkpoint)
                         checkpoint_start = None
-                        checkpoint_id += 1
                 
                 # Handle if the D key is pressed
                 elif event.type == pygame.KEYDOWN and event.key == K_d:
@@ -189,6 +188,11 @@ class Game:
     def on_execute(self):
         self._start_time = time.time()
         while(self._running and self.get_time_since_start() < TIME_LIMIT and self.cars_alive() > 0):
+            pressed_keys = pygame.key.get_pressed()
+            if pressed_keys[K_c]:
+                self._show_checkpoints = not self._show_checkpoints
+            if pressed_keys[K_d]:
+                self._show_distances = not self._show_distances
             for event in pygame.event.get():
                 self.on_event(event)
             self.on_loop()
@@ -208,26 +212,36 @@ class Game:
             self.add_car(Car(self._car_spawn_position, self._car_spawn_rotation))
 
         while(self._running):
-            print(f"===== GENERATION {self._generation+1} =====")
+            print(f"===== GENERATION {self._generation} =====")
             self.on_execute()
 
             # Now that execute is over, let's order the cars by their scores.
             cars = sorted(self._cars, key=lambda car : car._score, reverse=True)
+            self._cars = list(filter(lambda car: car in cars[0:SUCCESSFUL_CUTOFF], self._cars))
+            self.on_render()
+            time.sleep(3)
 
             next_generation = cars[0:SUCCESSFUL_CUTOFF]
-            # Reset each parent that made it to the next generation
-            for car in next_generation:
-                car.reset()
+
+            print("SCORES", [car._score for car in next_generation])
 
             while len(next_generation) < self._cars_per_generation:
                 # The probability of each car being chosen is based on their total scores
                 car_a = choices(cars[0:SUCCESSFUL_CUTOFF], weights=[car._score for car in cars[0:SUCCESSFUL_CUTOFF]])[0]
                 car_b = None
-                while car_b != car_a: # we want to prevent a self mate - outside of mutation it would result in no difference, plus the car could go blind
+                while car_b is None or car_a == car_b: # we want to prevent a self mate - outside of mutation it would result in no difference, plus the car could go blind
                     car_b = choices(cars[0:SUCCESSFUL_CUTOFF], weights=[car._score for car in cars[0:SUCCESSFUL_CUTOFF]])[0]
 
                 new_car  = car_mate(car_a, car_b)
                 next_generation.append(new_car)
+
+            # Reset each parent that made it to the next generation
+            for car in next_generation[0:SUCCESSFUL_CUTOFF]:
+                car.reset()
+
+            # Add some new genes to the gene pool by adding a few completely newbie cars
+            # for i in range(0, self._new_cars_per_generation):
+            #     self.add_car(Car(self._car_spawn_position, self._car_spawn_rotation))
 
             # In case we generated too many...
             # next_generation = next_generation[0:self._cars_per_generation]

@@ -13,8 +13,9 @@ from .nn import mate as nn_mate
 im = Image.open('assets/car_sprite.png')
 im = im.resize((28, 14))
 
-CRASH = -200
+CRASH = -50
 CHECKPOINT = 150
+NO_CHECKPOINTS = -100
 
 class Car(pygame.sprite.Sprite):
 
@@ -138,7 +139,7 @@ class Car(pygame.sprite.Sprite):
             
         velocity_magnitude = self._velocity.magnitude() + acceleration
         if velocity_magnitude > 10:
-            velocity_magnitude = 10
+            velocity_magnitude = 15
 
         rotation = -self._rotation
 
@@ -154,7 +155,7 @@ class Car(pygame.sprite.Sprite):
     def crash(self, seconds_since_start : int):
         if self._crashed:
             return
-        self._score += CRASH + int(seconds_since_start)
+        # self._score += CRASH + int(seconds_since_start)
         self._crashed = True
 
     def cross_checkpoint(self, checkpoint : Checkpoint, seconds_since_start : int):
@@ -163,6 +164,8 @@ class Car(pygame.sprite.Sprite):
             self._checkpoints[checkpoint._id] = True
 
     def add_end_score(self, seconds_since_start):
+        if len(self._checkpoints) == 0:
+            self._score -= NO_CHECKPOINTS
         # Only add the score if we didn't crash
         # if self._crashed:
         #     return
@@ -184,18 +187,18 @@ class Car(pygame.sprite.Sprite):
         self._distances = {}
         self._distance_endpoints = {}
 
-def mate(a : Car, b : Car, a_parentage : float = 0.50, mutation : float = 0.05):
+def mate(a : Car, b : Car, a_parentage : float = 0.50, mutation : float = 0.15):
     # For fun, blend the colors
-    color = [0, 0, 0]
-    for index, channel in enumerate(color):
-        if uniform(0, 1) < mutation:
-            color[index] = randint(0, 255)
-        elif uniform(0, 1) < a_parentage:
-            color[index] = a._color[index]
-        else:
-            color[index] = b._color[index]
-    color = (color[0], color[1], color[2])
+    # color = [0, 0, 0]
+    # for index, channel in enumerate(color):
+    #     if uniform(0, 1) < mutation:
+    #         color[index] = randint(0, 255)
+    #     elif uniform(0, 1) < a_parentage:
+    #         color[index] = a._color[index]
+    #     else:
+    #         color[index] = b._color[index]
+    # color = (color[0], color[1], color[2])
 
     nn = nn_mate(a._nn, b._nn, a_parentage=a_parentage, mutation=mutation)
 
-    return Car(a._initial_position, a._initial_rotation, color, nn)
+    return Car(a._initial_position, a._initial_rotation, nn=nn)

@@ -1,7 +1,7 @@
 import numpy as np
 from random import uniform
 
-HIDDEN_LAYER_SIZE = 20
+HIDDEN_LAYER_SIZE = 10
 
 class NN():
 
