@@ -27,6 +27,8 @@ class Car(pygame.sprite.Sprite):
         ):
         super().__init__()
 
+        self._id = uuid()
+
         self._crashed = False
 
         self._position = position

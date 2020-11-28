@@ -7,11 +7,12 @@ from .track import Track
 import math
 from pygame.locals import K_d, K_RETURN
 import time
+from random import uniform, choices
 
 MANUAL_MODE = "manual"
 EVOLVE_MODE = "evolve"
 
-SUCCESSFUL_CUTOFF = 4
+SUCCESSFUL_CUTOFF = 10
 TIME_LIMIT = 20
 
 class Game:
@@ -214,25 +215,22 @@ class Game:
             cars = sorted(self._cars, key=lambda car : car._score, reverse=True)
 
             next_generation = cars[0:SUCCESSFUL_CUTOFF]
-
-            # Reset each car we seed the next_generation with
+            # Reset each parent that made it to the next generation
             for car in next_generation:
-                print("SCORE", car._score)
                 car.reset()
 
             while len(next_generation) < self._cars_per_generation:
-                for index, car in enumerate(cars[0:SUCCESSFUL_CUTOFF]):
-                    if len(next_generation) >= self._cars_per_generation:
-                        break
-                    for child_index, child in enumerate(cars[0:SUCCESSFUL_CUTOFF]):
-                        # Prevent a self-mate
-                        if child_index == index:
-                            continue
-                        new_car = car_mate(car, child)
-                        next_generation.append(new_car)
+                # The probability of each car being chosen is based on their total scores
+                car_a = choices(cars[0:SUCCESSFUL_CUTOFF], weights=[car._score for car in cars[0:SUCCESSFUL_CUTOFF]])[0]
+                car_b = None
+                while car_b != car_a: # we want to prevent a self mate - outside of mutation it would result in no difference, plus the car could go blind
+                    car_b = choices(cars[0:SUCCESSFUL_CUTOFF], weights=[car._score for car in cars[0:SUCCESSFUL_CUTOFF]])[0]
+
+                new_car  = car_mate(car_a, car_b)
+                next_generation.append(new_car)
 
             # In case we generated too many...
-            next_generation = next_generation[0:self._cars_per_generation]
+            # next_generation = next_generation[0:self._cars_per_generation]
             self.on_cleanup()
             self._cars = pygame.sprite.Group()
             for car in next_generation:
