@@ -13,7 +13,7 @@ MANUAL_MODE = "manual"
 EVOLVE_MODE = "evolve"
 
 SUCCESSFUL_CUTOFF = 10
-TIME_LIMIT = 20
+TIME_LIMIT = 30
 
 class Game:
     def __init__(self, trackname : str, mode : str = MANUAL_MODE, cars_per_generation=25):
@@ -225,15 +225,21 @@ class Game:
             time.sleep(3)
 
             next_generation = cars[0:SUCCESSFUL_CUTOFF]
-
+            scores = [car._score for car in next_generation]
             print("SCORES", [car._score for car in next_generation])
+            # random.choices does *not* work with negative weights. It also fails if
+            # all weights are zreo. offset the scores such that the lowest possible
+            # weight + 1 is the minimum value.
+            offset = min(scores)
+            if offset <= 0:
+                scores = [score + offset + 1 for score in scores]
 
             while len(next_generation) < self._cars_per_generation:
                 # The probability of each car being chosen is based on their total scores
-                car_a = choices(cars[0:SUCCESSFUL_CUTOFF], weights=[car._score for car in cars[0:SUCCESSFUL_CUTOFF]])[0]
+                car_a = choices(cars[0:SUCCESSFUL_CUTOFF], weights=scores)[0]
                 car_b = None
                 while car_b is None or car_a == car_b: # we want to prevent a self mate - outside of mutation it would result in no difference, plus the car could go blind
-                    car_b = choices(cars[0:SUCCESSFUL_CUTOFF], weights=[car._score for car in cars[0:SUCCESSFUL_CUTOFF]])[0]
+                    car_b = choices(cars[0:SUCCESSFUL_CUTOFF], weights=scores)[0]
 
                 new_car  = car_mate(car_a, car_b)
                 next_generation.append(new_car)
