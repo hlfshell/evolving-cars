@@ -1,15 +1,17 @@
 import pygame
 from pygame.locals import *
-from .car import Car
-from .car import mate as car_mate
-from .checkpoint import Checkpoint
-from .finishline import FinishLine
-from .track import Track
 import math
 from pygame.locals import K_d, K_RETURN, K_c, K_n, K_MINUS, K_EQUALS, K_LEFTBRACKET, K_RIGHTBRACKET
 import time
 from random import uniform, choices
 from pprint import pprint
+import json
+
+from .car import Car
+from .car import mate as car_mate
+from .checkpoint import Checkpoint
+from .finishline import FinishLine
+from .track import Track
 
 MANUAL_MODE = "manual"
 EVOLVE_MODE = "evolve"
@@ -107,6 +109,9 @@ class Game:
         if self._show_checkpoints:
             for checkpoint in self._checkpoints:
                 checkpoint.draw(self._display_surface)
+            # Draw the finish line as well
+            if self._finishline is not None:
+                self._finishline.draw(self._display_surface)
         pygame.display.update()
         self._frame_per_sec.tick(self._fps)
 
@@ -370,3 +375,34 @@ class Game:
     def play(self):
         if self.on_init() == False:
             self._running = False
+
+    def save(self, filepath : str):
+        with open(filepath, 'w') as writefile:
+            settings = {
+                "trackname": self._trackname,
+                "mode": self._mode,
+                "checkpoints": [],
+                "finish_line": [self._finishline._start_at[0], self._finishline._start_at[1], self._finishline._end_at[0], self._finishline._end_at[1]],
+                "car_start_pos": self._car_spawn_position,
+                "car_start_rot": self._car_spawn_rotation,
+                "cars_per_generation": self._cars_per_generation
+            }
+
+            for checkpoint in self._checkpoints:
+                settings["checkpoints"].append([checkpoint._start_at[0], checkpoint._start_at[1], checkpoint._end_at[0], checkpoint._end_at[1]],)
+
+            json.dump(settings, writefile)
+    
+
+def load_from_file(filepath : str) -> Game:
+    with open(filepath, 'r') as readfile:
+        settings = json.load(readfile)
+
+        game = Game(settings['trackname'], mode=settings['mode'], cars_per_generation=settings['cars_per_generation'])
+        for checkpoint in settings['checkpoints']:
+            game._checkpoints.append(Checkpoint((checkpoint[0], checkpoint[1]), (checkpoint[2], checkpoint[3])))
+        game._finishline = FinishLine((settings["finish_line"][0], settings["finish_line"][1]), (settings["finish_line"][2], settings["finish_line"][3]))
+        game._car_spawn_position = settings['car_start_pos']
+        game._car_spawn_rotation = settings['car_start_rot']
+
+        return game
