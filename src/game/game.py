@@ -9,12 +9,13 @@ import math
 from pygame.locals import K_d, K_RETURN, K_c, K_n
 import time
 from random import uniform, choices
+from pprint import pprint
 
 MANUAL_MODE = "manual"
 EVOLVE_MODE = "evolve"
 
 SUCCESSFUL_CUTOFF = 10
-TIME_LIMIT = 30
+TIME_LIMIT = 60
 
 class Game:
     def __init__(self, trackname : str, mode : str = MANUAL_MODE, cars_per_generation=25):
@@ -281,6 +282,7 @@ class Game:
             time.sleep(3)
 
             next_generation = cars[0:SUCCESSFUL_CUTOFF]
+            parents = cars[0:SUCCESSFUL_CUTOFF] # This is duplicated solely for the mate_counter
             scores = [car._score for car in next_generation]
             print("SCORES", [car._score for car in next_generation])
             # random.choices does *not* work with negative weights. It also fails if
@@ -290,15 +292,31 @@ class Game:
             if offset <= 0:
                 scores = [score + offset + 1 for score in scores]
 
+            mate_counter = {}
             while len(next_generation) < self._cars_per_generation:
                 # The probability of each car being chosen is based on their total scores
                 car_a = choices(cars[0:SUCCESSFUL_CUTOFF], weights=scores)[0]
                 car_b = None
                 while car_b is None or car_a == car_b: # we want to prevent a self mate - outside of mutation it would result in no difference, plus the car could go blind
                     car_b = choices(cars[0:SUCCESSFUL_CUTOFF], weights=scores)[0]
+                
+                # Update the mate counter
+                car_a_parent_index = parents.index(car_a)
+                car_b_parent_index = parents.index(car_b)
+                if car_a_parent_index not in mate_counter:
+                    mate_counter[car_a_parent_index] = 0
+                mate_counter[car_a_parent_index] += 1
+                if car_b_parent_index not in mate_counter:
+                    mate_counter[car_b_parent_index] = 0
+                mate_counter[car_b_parent_index] += 1
 
+                # Create the new car
                 new_car  = car_mate(car_a, car_b)
                 next_generation.append(new_car)
+
+            # Print the mate counter:
+            print("Mate Counter")
+            pprint(mate_counter)
 
             # Reset each parent that made it to the next generation
             for car in next_generation:
