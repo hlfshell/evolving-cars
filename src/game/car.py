@@ -166,11 +166,6 @@ class Car(pygame.sprite.Sprite):
     def add_end_score(self, seconds_since_start):
         if len(self._checkpoints) == 0:
             self._score += NO_CHECKPOINTS
-        # Only add the score if we didn't crash
-        # if self._crashed:
-        #     return
-        # self._score += seconds_since_start
-        return # add nothing atm
 
     def add_distance(self, angle, end_point, distance):
         self._distance_endpoints[angle] = end_point
@@ -186,9 +181,9 @@ class Car(pygame.sprite.Sprite):
         self._checkpoints = {}
         self._distances = {}
         self._distance_endpoints = {}
-        self.render()
+        self.render() # This reset the rectangle position for collision detection
 
-def mate(a : Car, b : Car, a_parentage : float = 0.50, mutation : float = 0.15):
+def mate(a : Car, b : Car, a_parentage : float = 0.50, mutation : float = 0.05):
     # For fun, blend the colors
     # color = [0, 0, 0]
     # for index, channel in enumerate(color):

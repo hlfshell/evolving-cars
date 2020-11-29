@@ -78,7 +78,8 @@ class Game:
             if len(trackCollions) > 0:
                 car.crash(self.get_time_since_start())
             for checkpoint in self._checkpoints:
-                if checkpoint.check_collision(car.rect):
+                # if checkpoint.check_collision(car.rect):
+                if checkpoint.check_collision(car):
                     car.cross_checkpoint(checkpoint, self.get_time_since_start())
 
     def on_render(self):
