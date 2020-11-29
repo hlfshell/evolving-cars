@@ -139,7 +139,7 @@ class Car(pygame.sprite.Sprite):
             
         velocity_magnitude = self._velocity.magnitude() + acceleration
         if velocity_magnitude > 10:
-            velocity_magnitude = 15
+            velocity_magnitude = 10
 
         rotation = -self._rotation
 
