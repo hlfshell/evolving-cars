@@ -247,7 +247,11 @@ class Game:
             if pressed_keys[K_d]:
                 self._show_distances = not self._show_distances
             if pressed_keys[K_n]:
-                manual_stop = True
+                # The N key can accidentally be held down too long skipping
+                # the next generation - annoying. So only pay attention to
+                # the skip key if its been at least 5 seconds.
+                if time.time() - self._start_time > 5:
+                    manual_stop = True
             for event in pygame.event.get():
                 self.on_event(event)
             self.on_loop()
