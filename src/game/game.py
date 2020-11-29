@@ -3,6 +3,7 @@ from pygame.locals import *
 from .car import Car
 from .car import mate as car_mate
 from .checkpoint import Checkpoint
+from .finishline import FinishLine
 from .track import Track
 import math
 from pygame.locals import K_d, K_RETURN, K_c, K_n
@@ -30,7 +31,9 @@ class Game:
         self._car_spawn_rotation = None
 
         self._show_checkpoints = False
+        self._finishline = None
         self._show_distances = False
+        self._show_finishline = False
 
         self._mode = mode
         self._generation = 1
@@ -78,6 +81,8 @@ class Game:
                 # if checkpoint.check_collision(car.rect):
                 if checkpoint.check_collision(car):
                     car.cross_checkpoint(checkpoint, self.get_time_since_start())
+            if self._finishline.check_collision(car):
+                car.cross_finish_line()
 
     def on_render(self):
         self._display_surface.fill((69, 68, 67))
@@ -166,12 +171,56 @@ class Game:
         
         self._show_checkpoints = False
 
+    def set_finish_line(self):
+        pressed_keys = pygame.key.get_pressed()
+        finishline_start = None
+        self._show_checkpoints = True
+        self._show_finishline = True
+
+        while(self._finishline is None):
+            pressed_keys = pygame.key.get_pressed()
+            self.on_render()
+            for checkpoint in self._checkpoints:
+                checkpoint.draw(self._display_surface)
+                pygame.display.update()
+                
+            if finishline_start is not None:
+                pygame.draw.line(self._display_surface, (0, 255, 0), finishline_start, pygame.mouse.get_pos(), width=3)
+                pygame.display.update()
+
+            for event in pygame.event.get():
+                left, _, _ = pygame.mouse.get_pressed()
+                if left:
+                    if finishline_start is None:
+                        finishline_start = pygame.mouse.get_pos()
+                    else:
+                        # Since instant double tapping is *really* annoying and common on trackpads, let's
+                        # make sure this is not a line with too small a size to be worth adding
+                        finishline_end = pygame.mouse.get_pos()
+                        distance = ( (finishline_end[0] - finishline_start[0])**2 + (finishline_end[1] - finishline_start[1])**2 )**0.5
+                        if distance < 2:
+                            continue
+                        self._finishline = FinishLine(finishline_start, finishline_end)
+                
+                # Handle if the D key is pressed
+                elif event.type == pygame.KEYDOWN and event.key == K_d:
+                    # If the D key was pressed and we were drawing a new checkpoint, cancel
+                    if finishline_start is not None:
+                        finishline_start = None
+                        continue
+                    if self._finishline is not None:
+                        self._finishline = None
+        
+        self._show_checkpoints = False
+        self._show_finishline = False
+    
     def setup(self):
         self.set_car_spawn()
         # Spawn a car
         car = Car(self._car_spawn_position, self._car_spawn_rotation)
         self.add_car(car)
         self.set_checkpoints()
+        self.set_finish_line()
         if self._mode == MANUAL_MODE:
             # We're actually done by this point in manual mode. So just return
             return

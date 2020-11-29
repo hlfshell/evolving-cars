@@ -163,6 +163,12 @@ class Car(pygame.sprite.Sprite):
             self._score += CHECKPOINT - int(seconds_since_start)
             self._checkpoints[checkpoint._id] = True
 
+    def cross_finish_line(self):
+        # We are clearing out the checkpoints, but because we punish
+        # cars that don't go anywhere, we need *something* here to mark
+        # that checkpoints have been crossed.
+        self._checkpoints = {"finish": True}
+
     def add_end_score(self, seconds_since_start):
         if len(self._checkpoints) == 0:
             self._score += NO_CHECKPOINTS
