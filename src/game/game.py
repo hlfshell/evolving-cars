@@ -230,7 +230,7 @@ class Game:
             # random.choices does *not* work with negative weights. It also fails if
             # all weights are zreo. offset the scores such that the lowest possible
             # weight + 1 is the minimum value.
-            offset = min(scores)
+            offset = abs(min(scores))
             if offset <= 0:
                 scores = [score + offset + 1 for score in scores]
 
