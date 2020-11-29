@@ -6,15 +6,13 @@ from .checkpoint import Checkpoint
 from .finishline import FinishLine
 from .track import Track
 import math
-from pygame.locals import K_d, K_RETURN, K_c, K_n, K_MINUS, K_EQUALS
+from pygame.locals import K_d, K_RETURN, K_c, K_n, K_MINUS, K_EQUALS, K_LEFTBRACKET, K_RIGHTBRACKET
 import time
 from random import uniform, choices
 from pprint import pprint
 
 MANUAL_MODE = "manual"
 EVOLVE_MODE = "evolve"
-
-SUCCESSFUL_CUTOFF = 10
 TIME_LIMIT = 60
 
 pygame.font.init()
@@ -45,6 +43,7 @@ class Game:
 
         self._cars_per_generation = cars_per_generation
         self._mutation_rate = 0.10
+        self._parent_cutoff = 10
 
     def get_time_since_start(self):
         if self._start_time is None:
@@ -268,10 +267,22 @@ class Game:
                     manual_stop = True
             if pressed_keys[K_MINUS]:
                 self._mutation_rate -= 0.05
-                print(f"Mutation rate set to {self._mutation_rate * 100}%")
+                print(f"Mutation rate set to {int(self._mutation_rate * 100)}%")
             if pressed_keys[K_EQUALS]:
                 self._mutation_rate += 0.05
-                print(f"Mutation rate set to {self._mutation_rate * 100}%")
+                print(f"Mutation rate set to {int(self._mutation_rate * 100)}%")
+            if pressed_keys[K_LEFTBRACKET]:
+                self._parent_cutoff -= 5
+                if self._parent_cutoff <= 0:
+                    self._parent_cutoff = 5
+                else:
+                    print(f"The top {self._parent_cutoff} cars will be used as parents")
+            if pressed_keys[K_RIGHTBRACKET]:
+                self._parent_cutoff += 5
+                if self._parent_cutoff >= self._cars_per_generation:
+                    self._parent_cutoff = self._cars_per_generation - 5
+                else:
+                    print(f"The top {self._parent_cutoff} cars will be used as parents")
             for event in pygame.event.get():
                 self.on_event(event)
             self.on_loop()
@@ -296,28 +307,27 @@ class Game:
             
             # Now that execute is over, let's order the cars by their scores.
             cars = sorted(self._cars, key=lambda car : car._score, reverse=True)
-            self._cars = cars[0:SUCCESSFUL_CUTOFF]
+            self._cars = cars[0:self._parent_cutoff]
             self.on_render()
             time.sleep(3)
 
-            next_generation = cars[0:SUCCESSFUL_CUTOFF]
-            parents = cars[0:SUCCESSFUL_CUTOFF] # This is duplicated solely for the mate_counter
+            next_generation = cars[0:self._parent_cutoff]
+            parents = cars[0:self._parent_cutoff] # This is duplicated solely for the mate_counter
             scores = [car._score for car in next_generation]
             print("SCORES", [car._score for car in next_generation])
             # random.choices does *not* work with negative weights. It also fails if
             # all weights are zreo. offset the scores such that the lowest possible
             # weight + 1 is the minimum value.
             offset = abs(min(scores))
-            if offset <= 0:
-                scores = [score + offset + 1 for score in scores]
+            scores = [score + offset + 1 for score in scores]
 
             mate_counter = {}
             while len(next_generation) < self._cars_per_generation:
                 # The probability of each car being chosen is based on their total scores
-                car_a = choices(cars[0:SUCCESSFUL_CUTOFF], weights=scores)[0]
+                car_a = choices(cars[0:self._parent_cutoff], weights=scores)[0]
                 car_b = None
                 while car_b is None or car_a == car_b: # we want to prevent a self mate - outside of mutation it would result in no difference, plus the car could go blind
-                    car_b = choices(cars[0:SUCCESSFUL_CUTOFF], weights=scores)[0]
+                    car_b = choices(cars[0:self._parent_cutoff], weights=scores)[0]
                 
                 # Update the mate counter
                 car_a_parent_index = parents.index(car_a)
