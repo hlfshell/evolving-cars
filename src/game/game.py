@@ -6,7 +6,7 @@ from .checkpoint import Checkpoint
 from .finishline import FinishLine
 from .track import Track
 import math
-from pygame.locals import K_d, K_RETURN, K_c, K_n
+from pygame.locals import K_d, K_RETURN, K_c, K_n, K_MINUS, K_EQUALS
 import time
 from random import uniform, choices
 from pprint import pprint
@@ -41,8 +41,10 @@ class Game:
 
         self._mode = mode
         self._generation = 1
-        self._cars_per_generation = cars_per_generation
         self._start_time = None
+
+        self._cars_per_generation = cars_per_generation
+        self._mutation_rate = 0.10
 
     def get_time_since_start(self):
         if self._start_time is None:
@@ -264,6 +266,12 @@ class Game:
                 # the skip key if its been at least 5 seconds.
                 if time.time() - self._start_time > 5:
                     manual_stop = True
+            if pressed_keys[K_MINUS]:
+                self._mutation_rate -= 0.05
+                print(f"Mutation rate set to {self._mutation_rate * 100}%")
+            if pressed_keys[K_EQUALS]:
+                self._mutation_rate += 0.05
+                print(f"Mutation rate set to {self._mutation_rate * 100}%")
             for event in pygame.event.get():
                 self.on_event(event)
             self.on_loop()
@@ -322,7 +330,7 @@ class Game:
                 mate_counter[car_b_parent_index] += 1
 
                 # Create the new car
-                new_car  = car_mate(car_a, car_b)
+                new_car  = car_mate(car_a, car_b, mutation=self._mutation_rate)
                 next_generation.append(new_car)
 
             # Print the mate counter:
