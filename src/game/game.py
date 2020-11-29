@@ -17,6 +17,9 @@ EVOLVE_MODE = "evolve"
 SUCCESSFUL_CUTOFF = 10
 TIME_LIMIT = 60
 
+pygame.font.init()
+font = pygame.font.SysFont(None, 48)
+
 class Game:
     def __init__(self, trackname : str, mode : str = MANUAL_MODE, cars_per_generation=25):
         self._running = True
@@ -88,17 +91,25 @@ class Game:
     def on_render(self):
         self._display_surface.fill((69, 68, 67))
         self._display_surface.blit(self._track.surf, self._track.rect)
+
+        # Generation Title
+        generation_title = font.render(f"Generation {self._generation}", True, (255, 255, 255))
+        track_size = self._track.get_size()
+        self._display_surface.blit(generation_title, (10, track_size[1] - 30))
+
+        # Car drawing
         for car in self._cars:
             car.render()
             self._display_surface.blit(car.surf, car.rect)
             
+        # Checkpoints
         if self._show_checkpoints:
             for checkpoint in self._checkpoints:
                 checkpoint.draw(self._display_surface)
         pygame.display.update()
         self._frame_per_sec.tick(self._fps)
 
-        # Draw each distance measuring line
+        # Distances Drawing
         if self._show_distances:
             for car in self._cars:
                 for angle in car._distance_endpoints:
@@ -272,9 +283,9 @@ class Game:
             self.add_car(Car(self._car_spawn_position, self._car_spawn_rotation))
 
         while(self._running):
-            print(f"===== GENERATION {self._generation} =====")
+            print(f"===== GENERATION {self._generation} =====")    
             self.on_execute()
-
+            
             # Now that execute is over, let's order the cars by their scores.
             cars = sorted(self._cars, key=lambda car : car._score, reverse=True)
             self._cars = cars[0:SUCCESSFUL_CUTOFF]
