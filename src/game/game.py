@@ -45,9 +45,6 @@ class Game:
     def add_car(self, car : Car):
         self._cars.add(car)
 
-    def add_checkpoint(self, checkpoint : Checkpoint):
-        self._checkpoints.add(checkpoint)
-
     def on_init(self):
         pygame.init()
         self._track = Track(self._trackname)
@@ -147,7 +144,13 @@ class Game:
                     if checkpoint_start is None:
                         checkpoint_start = pygame.mouse.get_pos()
                     else:
-                        checkpoint = Checkpoint(checkpoint_start, pygame.mouse.get_pos())
+                        # Since instant double tapping is *really* annoying and common on trackpads, let's
+                        # make sure this is not a line with too small a size to be worth adding
+                        checkpoint_end = pygame.mouse.get_pos()
+                        distance = ( (checkpoint_end[0] - checkpoint_start[0])**2 + (checkpoint_end[1] - checkpoint_start[1])**2 )**0.5
+                        if distance < 2:
+                            continue
+                        checkpoint = Checkpoint(checkpoint_start, checkpoint_end)
                         self._checkpoints.append(checkpoint)
                         checkpoint_start = None
                 
