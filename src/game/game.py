@@ -18,7 +18,7 @@ EVOLVE_MODE = "evolve"
 TIME_LIMIT = 60
 
 pygame.font.init()
-font = pygame.font.SysFont(None, 48)
+font = pygame.font.SysFont(None, 32)
 
 class Game:
     def __init__(self, trackname : str, mode : str = MANUAL_MODE, cars_per_generation=25):
@@ -44,7 +44,7 @@ class Game:
         self._start_time = None
 
         self._cars_per_generation = cars_per_generation
-        self._mutation_rate = 0.10
+        self._mutation_rate = 0.005
         self._parent_cutoff = 10
 
     def get_time_since_start(self):
@@ -95,11 +95,6 @@ class Game:
         self._display_surface.fill((69, 68, 67))
         self._display_surface.blit(self._track.surf, self._track.rect)
 
-        # Generation Title
-        generation_title = font.render(f"Generation {self._generation}", True, (255, 255, 255))
-        track_size = self._track.get_size()
-        self._display_surface.blit(generation_title, (10, track_size[1] - 30))
-
         # Car drawing
         for car in self._cars:
             car.render()
@@ -120,6 +115,21 @@ class Game:
             for car in self._cars:
                 for angle in car._distance_endpoints:
                     pygame.draw.line(self._display_surface, (0, 255, 0), car.get_center(), car._distance_endpoints[angle], width=1)
+
+        # Generation Title
+        generation_title = font.render(f"Generation {self._generation}", True, (255, 255, 255))
+        track_size = self._track.get_size()
+        # self._display_surface.blit(generation_title, (10, track_size[1] - 30))
+        self._display_surface.blit(generation_title, (10, 10))
+
+        # Parent title
+        parent_title = font.render(f"The top {self._parent_cutoff} cars will survive and mate", True, (255, 255, 255))
+        self._display_surface.blit(parent_title, (10, 40))
+
+        # Mutation title
+        if self._mutation_rate > 0.0:
+            mutation_title = font.render(f"The mutation rate is {round(self._mutation_rate * 100, 2)}%", True, (255, 255, 255))
+            self._display_surface.blit(mutation_title, (10, 70))
 
         pygame.display.update()
 
@@ -271,19 +281,23 @@ class Game:
                 if time.time() - self._start_time > 5:
                     manual_stop = True
             if pressed_keys[K_MINUS]:
-                self._mutation_rate -= 0.05
+                self._mutation_rate -= 0.001
+                if self._mutation_rate < 0.0:
+                    self._mutation_rate = 0.0
                 print(f"Mutation rate set to {int(self._mutation_rate * 100)}%")
             if pressed_keys[K_EQUALS]:
-                self._mutation_rate += 0.05
+                self._mutation_rate += 0.001
+                if self._mutation_rate > 1.0:
+                    self._mutation_rate = 1.0
                 print(f"Mutation rate set to {int(self._mutation_rate * 100)}%")
             if pressed_keys[K_LEFTBRACKET]:
-                self._parent_cutoff -= 5
-                if self._parent_cutoff <= 0:
-                    self._parent_cutoff = 5
+                self._parent_cutoff -= 1
+                if self._parent_cutoff <= 2:
+                    self._parent_cutoff = 2
                 else:
                     print(f"The top {self._parent_cutoff} cars will be used as parents")
             if pressed_keys[K_RIGHTBRACKET]:
-                self._parent_cutoff += 5
+                self._parent_cutoff += 1
                 if self._parent_cutoff >= self._cars_per_generation:
                     self._parent_cutoff = self._cars_per_generation - 5
                 else:
