@@ -42,8 +42,8 @@ The output layer is whether or not to:
 
 * Accelerate
 * Deaccelerate
-* Turn left slight (1 degree) or hard (1 4 degrees) (two neurons)
-* Turn right slight (1 degree) or hard (1 4 degrees) (two neurons)
+* Turn left slight (1 degree) or hard (4 degrees) (two neurons)
+* Turn right slight (1 degree) or hard (4 degrees) (two neurons)
 
 The output layer uses a sigmoid function to squash input between 0 and 1. If the output value is 0.5 or higher, the neuron is considered activate. If the car activates multiple neurons that disagree with eachother (accelerate and deaccelerate) it just results in nothing being changed.
 
